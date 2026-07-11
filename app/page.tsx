@@ -15,6 +15,8 @@ import { ProblemsStep } from "@/components/ProblemsStep";
 import { ContactForm } from "@/components/ContactForm";
 import { ThankYou } from "@/components/ThankYou";
 
+const MAKE_URL = process.env.NEXT_PUBLIC_MAKE_WEBHOOK_URL;
+
 type Step = "landing" | "category" | "problems" | "contact" | "thankyou";
 
 const PROGRESS: Record<Step, number> = {
@@ -85,14 +87,18 @@ export default function Page() {
       },
       scoring,
       izvor: getStoredUTM(),
+      meta: { submitted_at: new Date().toISOString(), funnel: "noro-quiz-v1" },
     };
 
-    // Fire-and-forget: ne blokiramo prelaz na Thank You.
-    fetch("/api/lead", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch(() => {});
+    // Static hosting (GitHub Pages): šaljemo direktno na Make webhook iz browsera.
+    // Fire-and-forget (no-cors) — ne blokiramo prelaz na Thank You.
+    if (MAKE_URL) {
+      fetch(MAKE_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    }
 
     setResult({ personalization, recommendation, checkoutUrl });
     setStep("thankyou");
